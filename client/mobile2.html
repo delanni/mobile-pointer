@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="en" ng-app>
+
+<head>
+  <title>ALMA EXAMPLE</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="/css/bootstrap.min.css">
+  <link rel="stylesheet" href="/css/bootstrap-responsive.min.css">
+  <style>
+    body {
+      padding-top: 60px;
+    }
+  </style>
+  <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/three.js/85/three.min.js"></script>
+  <script>
+    setInterval(function() {
+      document.getElementById("frequencyHolder").innerHTML = `${orientationCount} | ${accelerometerCount}`;
+      orientationCount = 0;
+      accelerometerCount = 0;
+    }, 1000);
+
+    var orientationCount = 0;
+    window.addEventListener("deviceorientation", function(ev) {
+      orientationCount += 1;
+      document.getElementById("orientationHolder").innerHTML = `
+          <br/>alpha: ${alpha}
+          <br/>beta: ${beta}
+          <br/>gamma: ${gamma}
+        `;
+      // alpha = (alpha + ev.alpha/360*Math.PI)/2;
+      // beta = (beta + ev.beta/360*Math.PI)/2;
+      // gamma = (gamma + ev.gamma/360*Math.PI)/2;
+      alpha = ev.alpha/360*Math.PI;
+      beta = ev.beta/360*Math.PI;
+      gamma = ev.gamma/360*Math.PI;
+    }, false);
+    
+    var alphaBase = 0;
+    var betaBase = 0;
+    var gammaBase = 0;
+    
+    var alpha = 0;
+    var beta = 0;
+    var gamma = 0;
+
+    var accelerometerCount = 0;
+    window.addEventListener("devicemotion", function(ev) {
+      accelerometerCount += 1;
+      var acc = ev.acceleration;
+      var accGravity = ev.accelerationIncludingGravity;
+      // document.getElementById("acceleroHolder").innerHTML = `
+          // <br/>A: ${acc.x}, ${acc.y}, ${acc.z}
+          // <br/>A+g: ${accGravity.x},  ${accGravity.y},  ${accGravity.z}
+        // `;
+    }, false);
+    
+    function calibrate(){
+      alphaBase = alpha;
+      betaBase = beta;
+      gammaBase = gamma;
+    }
+  </script>
+</head>
+
+<body>
+  <button onClick="calibrate()">Calibrate</button>
+  <div id="frequencyHolder"> </div>
+  <div id="orientationHolder">
+  </div>
+  <div id="acceleroHolder">
+  </div>
+  <canvas id="visualizer" width="500" height="500">
+      
+    </canvas>
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="/js/jquery.min.js"></script>
+  <script src="/js/bootstrap.min.js"></script>
+  <script src="https://cdn.pubnub.com/sdk/javascript/pubnub.4.8.0.js"></script>
+
+  <script type="text/javascript">
+    // The three.js model visualizer
+    var canvas = document.getElementById("visualizer");
+
+    function render() {
+      if (renderer) {
+        animate();
+        renderer.render(scene, camera);
+      }
+      requestAnimationFrame(render);
+    }
+
+    function initCube() {
+      cube = new THREE.Mesh(new THREE.CubeGeometry(2, 4, .2), new THREE.MeshNormalMaterial());
+      scene.add(cube);
+    }
+
+    var scene, camera, renderer;
+
+    function init() {
+      scene = new THREE.Scene();
+      initCamera();
+      initRenderer();
+      initCube();
+    }
+
+    function initCamera() {
+      camera = new THREE.PerspectiveCamera(70, canvas.width / canvas.height, 1, 10);
+      camera.position.set(0, 3.5, 5);
+      camera.lookAt(scene.position);
+    }
+
+    function initRenderer() {
+      renderer = new THREE.WebGLRenderer({
+        antialias: true,
+        canvas: canvas
+      });
+      renderer.setSize(canvas.width, canvas.height);
+    }
+
+    var X = new THREE.Vector3(1,0,0);
+    var Y = new THREE.Vector3(0,1,0);
+    var Z = new THREE.Vector3(0,0,1);
+
+    function animate() {
+      // Need to use quaternion, because you can only set one rotation with this api call at a time->
+      cube.setRotationFromAxisAngle(X, Math.sin(Date.now()/1000));
+      // cube.setRotationFromAxisAngle(Y, beta-betaBase);
+      // cube.setRotationFromAxisAngle(X, gamma-gammaBase);
+    }
+
+    init();
+    render();
+  </script>
+
+</body>
+
+</html>

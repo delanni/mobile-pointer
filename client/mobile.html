@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="en" ng-app>
+  <head>
+    <title>Chat Example</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="/css/bootstrap.min.css">
+    <link rel="stylesheet" href="/css/bootstrap-responsive.min.css">
+    <style>
+      body {
+        padding-top: 60px;
+      }
+    </style>
+    <script src="https://cdn.pubnub.com/sdk/javascript/pubnub.4.8.0.js"></script>
+    <script>
+      function publish(json) {
+   
+        const pubnub = new PubNub({
+            publishKey : 'demo',
+            subscribeKey : 'demo'
+        });
+        
+        const pubnubDisplayer = document.getElementById("pubnubOrientationHolder");
+       
+        function publishSampleMessage() {
+            console.log("Since we're publishing on subscribe connectEvent, we're sure we'll receive the following publish.");
+            var publishConfig = {
+                channel : "hello_world",
+                message : json
+            }
+            pubnub.publish(publishConfig, function(status, response) {
+                console.log(status, response);
+            })
+        }
+       
+        pubnub.addListener({
+            status: function(statusEvent) {
+                if (statusEvent.category === "PNConnectedCategory") {
+                    publishSampleMessage();
+                }
+            },
+            message: function(message) {
+                console.log("New Message!!", message);
+                pubnubDisplayer.innerHTML = message.message;
+            },
+            presence: function(presenceEvent) {
+                // handle presence
+            }
+        })      
+        console.log("Subscribing..");
+        
+        pubnub.subscribe({
+            channels: ['hello_world'] 
+        });
+      };
+    
+      var orientationCount = 0;
+      let oriQueue = [];
+      window.addEventListener("deviceorientation", function(ev){
+        orientationCount+=1;
+        document.getElementById("orientationHolder").innerHTML = `
+          <br/>alpha: ${ev.alpha}
+          <br/>beta: ${ev.beta}
+          <br/>gamma: ${ev.gamma}
+        `;
+        oriQueue.push({
+          alpha: ev.alpha,
+          beta: ev.beta,
+          gamma: ev.gamma});
+      }, false);
+      
+      var accelerometerCount = 0;
+      let accQueue = [];
+      window.addEventListener("devicemotion", function(ev){
+          var acc = ev.acceleration;
+          var accGravity = ev.accelerationIncludingGravity;
+          accQueue.push({
+            "A": [acc.x.toFixed(2), acc.y.toFixed(2), acc.z.toFixed(2)],
+            "A+G": [accGravity.x.toFixed(2), accGravity.y.toFixed(2), accGravity.z.toFixed(2)]
+          });
+        // document.getElementById("acceleroHolder").innerHTML = `
+        //   <br/>A: ${acc.x}, ${acc.y}, ${acc.z}
+        //   <br/>A+g: ${accGravity.x},  ${accGravity.y},  ${accGravity.z}
+        // `;
+      }, false);
+      
+      function publishQueues() {
+        publish(accQueue);
+        publish(oriQueue);
+        accQueue = [];
+        oriQueue = [];
+      }
+      
+      setTimeout(publishQueues, 1000);
+    </script>
+  </head>
+  <body>
+    <div id="orientationHolder">
+    </div>
+    <div id="acceleroHolder">
+    </div>
+    <div id="pubnubOrientationHolder">
+    </div>
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="/js/jquery.min.js"></script>
+    <script src="/js/bootstrap.min.js"></script>
+    
+  </body>
+</html>
